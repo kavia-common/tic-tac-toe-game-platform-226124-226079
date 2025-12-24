@@ -1,4 +1,5 @@
 from typing import List, Optional, Literal
+import os
 
 from fastapi import Depends, FastAPI, HTTPException, Path, Body
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,6 +18,7 @@ from src.api.game_service import (
     map_winner_for_api,
 )
 
+# Define OpenAPI tags for documentation grouping
 openapi_tags = [
     {"name": "health", "description": "Service health checks"},
     {"name": "players", "description": "Player management"},
@@ -25,6 +27,7 @@ openapi_tags = [
     {"name": "internal", "description": "Internal utilities and bootstrapping"},
 ]
 
+# PUBLIC_INTERFACE
 app = FastAPI(
     title="Tic Tac Toe Backend",
     description="Backend service for Tic Tac Toe: players, games, moves, history, and leaderboard.",
@@ -32,9 +35,18 @@ app = FastAPI(
     openapi_tags=openapi_tags,
 )
 
+# Configure CORS based on environment variable:
+# - CORS_ORIGINS: comma-separated list of allowed origins (default: http://localhost:3000)
+# - If set to "*", will allow all origins.
+cors_origins_env = os.getenv("CORS_ORIGINS", "http://localhost:3000").strip()
+if cors_origins_env == "*":
+    allow_origins = ["*"]
+else:
+    allow_origins = [o.strip() for o in cors_origins_env.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Can be restricted via env later
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -43,14 +55,23 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup() -> None:
-    """Initialize database and create tables on service startup."""
+    """Initialize database and create tables on service startup.
+
+    Notes:
+    - To control the SQLite database location, set TICTACTOE_DB_PATH in the environment.
+      It defaults to ./data/tictactoe.db if not provided.
+    - To adjust allowed CORS origins, set CORS_ORIGINS (comma-separated list) or "*" to allow all.
+    """
     init_db(echo=False)
 
 
 # PUBLIC_INTERFACE
 @app.get("/", tags=["health"], summary="Health Check", description="Basic health check endpoint.")
 def health_check():
-    """Return a simple service health response."""
+    """Return a simple service health response.
+
+    CORS: This service applies CORS based on the CORS_ORIGINS environment variable.
+    """
     return {"message": "Healthy"}
 
 

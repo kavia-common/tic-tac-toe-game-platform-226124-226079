@@ -8,16 +8,18 @@ from dotenv import load_dotenv
 # Load environment variables from .env if present
 load_dotenv()
 
-# Determine DB path from environment, fallback to ./tictactoe.db in container root
+# Determine DB path from environment, fallback to ./data/tictactoe.db in container root
 def _resolve_db_path() -> str:
     # PUBLIC_INTERFACE
-    # We accept DB_PATH and TICTACTOE_DB_PATH for flexibility; defaults to ./tictactoe.db
+    # Primary env var: TICTACTOE_DB_PATH
+    # Backward-compatible: DB_PATH
+    # Fallback: ./data/tictactoe.db
     db_path = (
-        os.getenv("DB_PATH")
-        or os.getenv("TICTACTOE_DB_PATH")
-        or "./tictactoe.db"
+        os.getenv("TICTACTOE_DB_PATH")
+        or os.getenv("DB_PATH")
+        or "./data/tictactoe.db"
     )
-    # Expand user and make absolute path relative to backend container root by default
+    # Expand user/home and return as path; directory will be created if needed
     db_path = os.path.expanduser(db_path)
     return db_path
 
